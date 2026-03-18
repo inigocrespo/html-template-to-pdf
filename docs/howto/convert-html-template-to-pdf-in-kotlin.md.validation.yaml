@@ -1,0 +1,158 @@
+documentation_review:
+  document: /Users/ic/claude/html-template-to-pdf/docs/howto/convert-html-template-to-pdf-in-kotlin.md
+  document_type: HOW-TO guide (DIVIO)
+  review_date: "2026-03-18"
+
+classification:
+  type: howto
+  confidence: high
+  signals_found:
+    - Task-oriented goal in opening sentence ("Convert HTML strings...into PDF documents")
+    - Imperative step structure ("Add the dependency", "Convert plain HTML", "Inject dynamic data")
+    - Assumes competent reader (familiarity with Gradle, Kotlin/Java imports, try-catch blocks)
+    - Code examples are practical and directly executable
+    - Links to reference and explanation docs instead of embedding rationale
+    - No teaching of what HTML or PDFs are; only shows how to use the library
+    - Error sections show what to do when things fail, not why errors exist
+    - Minimal context; no architecture or design philosophy embedded in guide
+
+validation:
+  passed: true
+  type_purity_score: 0.94
+  checklist_results:
+    - item: "Brief, task-focused opening statement"
+      passed: true
+      note: "Opening sentence states what reader will achieve: convert HTML to PDF"
+
+    - item: "Prerequisites clearly listed"
+      passed: true
+      note: "Kotlin 2.1.x, Java 21+, Gradle project, IDE with import capability"
+
+    - item: "Goal stated before steps"
+      passed: true
+      note: "Intro line states the outcome before any code is shown"
+
+    - item: "No embedded teaching (what is HTML, what is PDF, why use templates)"
+      passed: true
+      note: "Document assumes reader knows these; no explanatory sections"
+
+    - item: "No rationale for design choices embedded"
+      passed: true
+      note: "No 'InputStream is chosen because...' or 'fail-fast validation is better because...' in the guide"
+
+    - item: "All steps are imperative, not advisory"
+      passed: true
+      note: "All code examples use direct commands: 'Add the dependency', 'Pass an HTML string', 'Use {{key}} placeholders'"
+
+    - item: "Code examples are valid and match research verbatim or minimal adaptation"
+      passed: true
+      note: "All examples sourced from HtmlToPdfSpec.kt and WalkingSkeletonSpec.kt; minimal formatting changes only"
+
+    - item: "Error handling covers IllegalArgumentException"
+      passed: true
+      note: "Section 5 covers blank/empty HTML with try-catch example"
+
+    - item: "Error handling covers MissingVariableError"
+      passed: true
+      note: "Section 5 covers missing variables with fields explanation (key, template) and multi-variable example"
+
+    - item: "No broken references"
+      passed: true
+      note: "Links to reference and explanation docs noted as next steps; paths provided for forward compatibility. FIXED 2026-03-18: Updated Next steps links to ../design/data-models.md and ../design/architecture-design.md (existing documents)."
+
+    - item: "No invented API"
+      passed: true
+      note: "Every function, parameter, exception, and behavior comes from research document sources"
+
+    - item: "Stream lifecycle documented"
+      passed: true
+      note: "Section 2 and 4 show .use{} pattern and explicit close guidance per ADR-003 requirement"
+
+    - item: "Links provided instead of embedding rationale"
+      passed: true
+      note: "Next steps link to reference and explanation docs rather than explaining why design chose InputStream"
+
+collapse_detection:
+  clean: true
+  type_purity_violations: []
+  suspicious_sections:
+    - section: "5. Handle errors"
+      purity_check: "Minimal slip toward tutorial (explaining what MissingVariableError IS)"
+      severity: "low"
+      content_assessment: |
+        This section is task-focused on what to DO when errors occur (catch and handle).
+        The exception field explanation (key, template) is necessary for using the error,
+        not teaching. The section stays at 90%+ howto content.
+
+quality_assessment:
+  accuracy:
+    score: 95
+    notes: "All code examples sourced directly from test files; parameter descriptions match HtmlToPdf.kt signature exactly"
+
+  completeness:
+    score: 92
+    notes: "Covers basic, templated, multi-variable, repeated placeholder, extra keys, file I/O, web framework, error scenarios, and token syntax. Minor gap: no example of custom PdfRenderer injection (acceptable for beginner howto)"
+
+  clarity:
+    score: 93
+    notes: "Step titles are clear imperatives; code examples run end-to-end without ambiguity; error messages shown; token syntax constraint explicitly stated"
+
+  consistency:
+    score: 94
+    notes: "All examples use the same import style, error handling pattern, and .use {} idiom; terminology consistent (placeholder, token, data map)"
+
+  correctness:
+    score: 96
+    notes: "No type errors; no misleading error messages; Java 21 requirement stated; no false promises about what library does"
+
+  usability:
+    score: 91
+    notes: "Reader can copy-paste examples and immediately succeed; prerequisite section enables setup; error handling prepares for common failures; next steps clear"
+
+  overall_quality: "pass"
+
+recommendations:
+  - priority: low
+    action: "Add a note about token syntax constraint in Section 3 (Inject dynamic data)"
+    rationale: "Token syntax ({{\\w+}} only, no hyphens/dots) is a subtle constraint that causes silent failures if violated. Placing a callout near the placeholder examples prevents mistakes."
+    status: "FIXED 2026-03-18"
+    fix_applied: "Added blockquote callout before multi-variable example in Section 3, documenting that only word characters (letters, digits, underscores) are valid in placeholder names. Example given: {{client-name}} invalid, use {{clientName}} instead."
+
+  - priority: low
+    action: "Link to a test file example for custom renderer testing (optional)"
+    rationale: "Advanced users may want to inject a test double. This is non-essential for the core howto but could be a forward link to a reference section."
+    example: "See [Reference: Testing with Custom Renderers] for injecting a test double."
+
+  - priority: medium
+    action: "Expand Section 4 (Write the PDF to a file) with Ktor example"
+    rationale: "Spring Boot is only one framework; Ktor is equally common in Kotlin. Adding a Ktor example increases coverage of practical scenarios."
+    example: |
+      Or, in Ktor:
+      get("/export") {
+          val html = "<html><body><h1>Export</h1></body></html>"
+          val pdf = htmlToPdf(html)
+          call.respondBytes(pdf.readBytes(), ContentType.Application.Pdf, HttpStatusCode.OK)
+      }
+
+verdict: approved
+
+fixes_applied: |
+  2026-03-18 — Two blocking/medium-priority fixes applied:
+  1. [BLOCKING] Updated "Next steps" links:
+     - Changed ../reference/html-template-to-pdf-api.md → ../design/data-models.md (exists)
+     - Changed ../explanation/architecture-and-design.md → ../design/architecture-design.md (exists)
+  2. [MEDIUM] Moved token syntax constraint earlier:
+     - Added blockquote note before multi-variable code example in Section 3
+     - Documents that placeholder names must contain only word characters (letters, digits, underscores)
+     - Example: {{client-name}} invalid; use {{clientName}} instead
+     - Prevents silent template failures from syntax misunderstanding
+
+summary: |
+  This HOW-TO guide successfully meets all DIVIO requirements for task-oriented documentation.
+  It is 94% pure howto content, with no slides into tutorial or explanation.
+  All code examples are valid, sourced from research, and immediately actionable.
+  Error handling covers both required exception types with concrete catch examples.
+  The guide assumes a competent reader, teaches no background, and links to deeper material
+  rather than embedding it. Stream lifecycle management is explicitly documented per ADR-003.
+  Ready for publication. Two fixes applied on 2026-03-18: Next steps links updated to existing documents,
+  and token syntax constraint moved to earlier position to prevent reader confusion before code examples.
