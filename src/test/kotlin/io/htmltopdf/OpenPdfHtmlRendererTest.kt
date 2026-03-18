@@ -8,8 +8,8 @@ class OpenPdfHtmlRendererTest : FunSpec({
     test("render returns InputStream starting with PDF magic bytes") {
         val renderer = OpenPdfHtmlRenderer()
         val result = renderer.render("<html><body><p>Hello</p></body></html>")
-        val header = ByteArray(4)
-        result.read(header)
-        String(header) shouldBe "%PDF"
+        val pdfMagicBytes = ByteArray(4)
+        result.read(pdfMagicBytes)
+        String(pdfMagicBytes) shouldBe "%PDF"
     }
 })

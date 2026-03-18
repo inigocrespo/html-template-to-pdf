@@ -12,22 +12,22 @@ class MissingVariableErrorTest : FunSpec({
     // Using 4 tests — within budget
 
     val template = "<html><body><p>Hello {{name}}</p></body></html>"
-    val error = MissingVariableError(key = "name", template = template)
+    val subject = MissingVariableError(key = "name", template = template)
 
     test("MissingVariableError is a RuntimeException") {
-        error.shouldBeInstanceOf<RuntimeException>()
+        subject.shouldBeInstanceOf<RuntimeException>()
     }
 
     test("key property exposes the missing placeholder name") {
-        error.key shouldBe "name"
+        subject.key shouldBe "name"
     }
 
     test("template property exposes the original template string") {
-        error.template shouldBe template
+        subject.template shouldBe template
     }
 
     test("message contains the key name and indicates it is missing") {
-        error.message shouldContain "name"
-        error.message shouldContain "missing"
+        subject.message shouldContain "name"
+        subject.message shouldContain "missing"
     }
 })
