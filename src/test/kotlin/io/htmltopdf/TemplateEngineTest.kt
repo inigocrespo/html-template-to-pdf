@@ -57,4 +57,9 @@ class TemplateEngineTest : FunSpec({
             mapOf("name" to "Alice", "unused" to "ignored")
         ) shouldBe "<p>Alice</p>"
     }
+
+    // B4 (empty token variant): empty token {{}} is not matched and passes through unchanged
+    test("template with empty token {{}} is returned unchanged") {
+        TemplateEngine.resolve("<p>{{}}</p>", emptyMap()) shouldBe "<p>{{}}</p>"
+    }
 })

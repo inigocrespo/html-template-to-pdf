@@ -131,6 +131,28 @@ class HtmlToPdfSpec : BehaviorSpec({
     }
 
     // ---------------------------------------------------------------------------
+    // STORY-02 (renderer injection): resolved HTML is passed to renderer, not raw template
+    // ---------------------------------------------------------------------------
+
+    given("a recording renderer injected into htmlToPdf") {
+        val recordedHtml = mutableListOf<String>()
+        val recordingRenderer = PdfRenderer { html ->
+            recordedHtml += html
+            java.io.ByteArrayInputStream("%PDF-test".toByteArray())
+        }
+        `when`("htmlToPdf is called with a template and data") {
+            htmlToPdf(
+                "<p>Hello {{name}}</p>",
+                mapOf("name" to "Alice"),
+                recordingRenderer
+            )
+            then("the renderer received the resolved HTML, not the raw template") {
+                recordedHtml.single() shouldBe "<p>Hello Alice</p>"
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------------------
     // STORY-03: Invalid input
     // ---------------------------------------------------------------------------
 
