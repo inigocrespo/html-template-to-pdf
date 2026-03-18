@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(PYTHONPATH=~/.claude/lib/python python3 -m des.cli.roadmap init \\\\\n  --project-id html-template-to-pdf \\\\\n  --goal \"Implement html-template-to-pdf Kotlin library — Walking Skeleton and full feature set\" \\\\\n  --output docs/feature/html-template-to-pdf/roadmap.yaml 2>&1)"
+    ]
+  }
+}

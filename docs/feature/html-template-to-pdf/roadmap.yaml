@@ -1,0 +1,131 @@
+roadmap:
+  project_id: html-template-to-pdf
+  created_at: '2026-03-18T14:26:29Z'
+  total_steps: 6
+  phases: 3
+phases:
+- id: '01'
+  name: Project Scaffolding
+  steps:
+  - id: 01-01
+    name: Gradle build files and package directory structure
+    description: >
+      Create build.gradle.kts and settings.gradle.kts with openpdf-html 3.0.3
+      dependency and Kotlin JVM configuration. Create source and test package
+      directories under src/main/kotlin/io/htmltopdf/ and
+      src/test/kotlin/io/htmltopdf/.
+    estimated_hours: 1
+    dependencies: []
+    criteria:
+      - ./gradlew dependencies resolves without error
+      - ./gradlew compileKotlin succeeds on an empty source tree
+      - BuildValidationSpec passes (build validation acceptance test)
+    implementation_scope:
+      - build.gradle.kts
+      - settings.gradle.kts
+
+- id: '02'
+  name: Walking Skeleton
+  steps:
+  - id: 02-01
+    name: PdfRenderer interface and OpenPdfHtmlRenderer adapter
+    description: >
+      Define the PdfRenderer port (interface with render(html: String):
+      InputStream). Implement OpenPdfHtmlRenderer as the driven adapter using
+      ITextRenderer from openpdf-html 3.0.3.
+    estimated_hours: 2
+    dependencies:
+      - 01-01
+    criteria:
+      - PdfRenderer interface declares render(html) returning InputStream
+      - OpenPdfHtmlRenderer implements PdfRenderer
+      - Rendering valid HTML returns a non-empty InputStream
+      - ./gradlew compileKotlin succeeds with both files present
+    implementation_scope:
+      - src/main/kotlin/io/htmltopdf/PdfRenderer.kt
+      - src/main/kotlin/io/htmltopdf/OpenPdfHtmlRenderer.kt
+
+  - id: 02-02
+    name: htmlToPdf public API function (plain HTML)
+    description: >
+      Implement the htmlToPdf(html, data) top-level function delegating to
+      OpenPdfHtmlRenderer. At this step data defaults to emptyMap() and no
+      substitution is performed. WalkingSkeletonSpec must pass.
+    estimated_hours: 1
+    dependencies:
+      - 02-01
+    criteria:
+      - htmlToPdf("<html>...</html>") returns InputStream whose first 4 bytes are %PDF
+      - Blank html argument throws IllegalArgumentException
+      - WalkingSkeletonSpec passes in full
+    implementation_scope:
+      - src/main/kotlin/io/htmltopdf/HtmlToPdf.kt
+
+- id: '03'
+  name: Variable Injection
+  steps:
+  - id: 03-01
+    name: MissingVariableError custom exception
+    description: >
+      Implement MissingVariableError as a RuntimeException subclass carrying
+      the missing key name and the original template string as named
+      constructor parameters.
+    estimated_hours: 0.5
+    dependencies:
+      - 02-02
+    criteria:
+      - MissingVariableError extends RuntimeException
+      - key property exposes the missing placeholder name
+      - template property exposes the original template string
+      - message contains both the key name and indicates it is missing
+    implementation_scope:
+      - src/main/kotlin/io/htmltopdf/MissingVariableError.kt
+
+  - id: 03-02
+    name: TemplateEngine with {{key}} substitution and fail-fast validation
+    description: >
+      Implement TemplateEngine that replaces all {{key}} tokens in a template
+      string with values from a Map<String, String>. Any unreferenced token
+      whose key is absent from the map must throw MissingVariableError before
+      any rendering occurs.
+    estimated_hours: 1.5
+    dependencies:
+      - 03-01
+    criteria:
+      - All {{key}} tokens present in the map are replaced in the returned string
+      - A token with no matching map entry throws MissingVariableError for that key
+      - Template with no tokens and empty map returns the template unchanged
+      - Validation runs before the rendered string is returned (fail-fast)
+    implementation_scope:
+      - src/main/kotlin/io/htmltopdf/TemplateEngine.kt
+
+  - id: 03-03
+    name: Integrate TemplateEngine into htmlToPdf — full acceptance suite passes
+    description: >
+      Wire TemplateEngine into htmlToPdf so variable substitution occurs before
+      rendering. HtmlToPdfSpec must pass in full, covering variable injection,
+      missing-variable errors, and invalid-input validation.
+    estimated_hours: 1
+    dependencies:
+      - 03-02
+    criteria:
+      - htmlToPdf with matching data map produces a valid PDF InputStream
+      - htmlToPdf with a missing map key throws MissingVariableError, not a render error
+      - htmlToPdf with blank html throws IllegalArgumentException regardless of data
+      - HtmlToPdfSpec passes in full
+    implementation_scope:
+      - src/main/kotlin/io/htmltopdf/HtmlToPdf.kt
+
+implementation_scope:
+  source_directories:
+    - src/main/kotlin/io/htmltopdf/
+  test_directories:
+    - src/test/kotlin/io/htmltopdf/
+  excluded_patterns:
+    - .gradle/
+    - build/
+    - "*.class"
+validation:
+  status: pending
+  reviewer: TODO
+  approved_at: TODO

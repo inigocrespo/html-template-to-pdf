@@ -1,0 +1,186 @@
+journey:
+  id: html-to-pdf
+  title: HTML Template to PDF Conversion
+  actor: Node.js developer (library consumer)
+  goal: Convert an HTML template with optional dynamic variables into a PDF readable stream
+  library: html-template-to-pdf
+  renderer: openpdf-html
+  date: 2026-03-18
+
+steps:
+  - id: S01
+    name: Install
+    actor: developer
+    action: Run `npm install html-template-to-pdf` in project directory
+    system_response: Package installed; openpdf-html resolved as dependency
+    artifact_out:
+      - name: node_modules/html-template-to-pdf
+        type: installed-package
+    emotion: curious
+    feature_tag: skeleton
+
+  - id: S02
+    name: Import
+    actor: developer
+    action: >
+      Add require/import statement:
+      const { htmlToPdf } = require('html-template-to-pdf')
+    system_response: Module loads without error; htmlToPdf function available in scope
+    artifact_out:
+      - name: htmlToPdf
+        type: function-reference
+    emotion: ready
+    feature_tag: skeleton
+
+  - id: S03
+    name: Call API (plain HTML)
+    actor: developer
+    action: >
+      Invoke htmlToPdf with a plain HTML string:
+      htmlToPdf('<h1>Invoice</h1><p>Total: $120</p>')
+    system_response: >
+      Library validates that htmlString is a non-empty string.
+      Passes htmlString to openpdf-html renderer.
+      Returns a Promise.
+    artifact_in:
+      - name: htmlString
+        type: string
+        source: developer
+    artifact_out:
+      - name: pdfPromise
+        type: Promise<Readable>
+    emotion: focused
+    feature_tag: skeleton
+
+  - id: S04
+    name: Receive Stream
+    actor: developer
+    action: Await the Promise returned by htmlToPdf
+    system_response: >
+      Promise resolves with a Node.js Readable stream.
+      Stream contains PDF byte sequence produced by openpdf-html.
+    artifact_in:
+      - name: pdfPromise
+        type: Promise<Readable>
+    artifact_out:
+      - name: pdfStream
+        type: Readable
+        format: PDF bytes (binary)
+    emotion: relieved
+    feature_tag: skeleton
+
+  - id: S05
+    name: Consume Stream
+    actor: developer
+    action: >
+      Pipe pdfStream to a writable destination:
+      pdfStream.pipe(fs.createWriteStream('output.pdf'))
+    system_response: >
+      PDF bytes written to destination.
+      Stream emits 'end' event on completion.
+      No dangling handles; stream closed cleanly.
+    artifact_in:
+      - name: pdfStream
+        type: Readable
+    artifact_out:
+      - name: output.pdf
+        type: file
+        format: PDF
+    emotion: confident
+    feature_tag: skeleton
+
+  - id: S06
+    name: Call API (with variable injection)
+    actor: developer
+    action: >
+      Invoke htmlToPdf with an HTML template string and a data object:
+      htmlToPdf('<h1>Hello {{name}}</h1>', { name: 'Maria Santos' })
+    system_response: >
+      Library validates htmlString and dataObject.
+      Scans template for {{key}} tokens.
+      Replaces each token with the corresponding value from dataObject.
+      Passes resolved HTML to openpdf-html renderer.
+      Returns a Promise.
+    artifact_in:
+      - name: htmlString
+        type: string
+        source: developer
+        contains_placeholders: true
+      - name: dataObject
+        type: object
+        source: developer
+    artifact_out:
+      - name: resolvedHtml
+        type: string
+        note: internal intermediate; not exposed to developer
+      - name: pdfPromise
+        type: Promise<Readable>
+    emotion: empowered
+    feature_tag: feature-1
+
+  - id: S07
+    name: Verify Injected Output
+    actor: developer
+    action: Consume pdfStream and inspect rendered PDF content
+    system_response: >
+      PDF contains resolved values in place of all {{key}} tokens.
+      No literal placeholder strings visible in output.
+    artifact_in:
+      - name: pdfStream
+        type: Readable
+    artifact_out:
+      - name: output.pdf
+        type: file
+        format: PDF
+        content_check: placeholders replaced with data values
+    emotion: satisfied
+    feature_tag: feature-1
+
+  - id: S08
+    name: Handle Missing Variable Error
+    actor: developer
+    action: >
+      Invoke htmlToPdf with a template containing a placeholder
+      whose key is absent from the data object:
+      htmlToPdf('<h1>Hello {{name}}</h1>', {})
+    system_response: >
+      Library detects that token 'name' has no matching key in dataObject.
+      Promise rejects with a MissingVariableError.
+      Error includes: missing key name, excerpt of template containing the token.
+    artifact_in:
+      - name: htmlString
+        type: string
+        contains_placeholders: true
+      - name: dataObject
+        type: object
+        note: missing one or more keys referenced by template
+    artifact_out:
+      - name: MissingVariableError
+        type: Error
+        fields:
+          - key: string (the missing placeholder key)
+          - template: string (the original template excerpt)
+    emotion: informed
+    feature_tag: feature-1
+
+integration_checkpoints:
+  - from: S03
+    to: S04
+    contract: >
+      htmlToPdf MUST return a Promise. Developer code awaits it.
+      Synchronous throw is not acceptable.
+  - from: S04
+    to: S05
+    contract: >
+      Resolved value MUST be a Node.js Readable stream (stream.Readable).
+      Developer code calls .pipe() on it without type guards.
+  - from: S06
+    to: S07
+    contract: >
+      resolvedHtml passed to openpdf-html MUST contain no remaining {{key}} tokens
+      when all keys were present in dataObject.
+  - from: S06
+    to: S08
+    contract: >
+      When any {{key}} token has no match in dataObject, the Promise MUST reject
+      before calling openpdf-html. No partial renders on missing variables.
