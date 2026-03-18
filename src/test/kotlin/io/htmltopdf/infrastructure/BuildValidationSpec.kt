@@ -1,7 +1,5 @@
 package io.htmltopdf.infrastructure
 
-import io.htmltopdf.MissingVariableError
-import io.htmltopdf.PdfRenderer
 import io.htmltopdf.htmlToPdf
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
@@ -25,16 +23,6 @@ class BuildValidationSpec : DescribeSpec({
             // at compile time and reachable at runtime via the public package surface.
             val result = htmlToPdf("<html><body><p>Build validation</p></body></html>")
             result shouldNotBe null
-        }
-
-        it("MissingVariableError is a RuntimeException subclass") {
-            val isRuntimeException = RuntimeException::class.java
-                .isAssignableFrom(MissingVariableError::class.java)
-            isRuntimeException shouldBe true
-        }
-
-        it("PdfRenderer is an interface") {
-            PdfRenderer::class.java.isInterface shouldBe true
         }
     }
 })

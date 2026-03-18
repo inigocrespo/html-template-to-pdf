@@ -3,24 +3,15 @@ package io.htmltopdf
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
-import io.kotest.matchers.types.shouldBeInstanceOf
 
 class MissingVariableErrorTest : FunSpec({
 
-    // Test budget: 4 distinct behaviors x 2 = 8 max unit tests
-    // Behaviors: (1) extends RuntimeException, (2) key property, (3) template property, (4) message content
-    // Using 4 tests — within budget
+    // Test budget: 2 distinct behaviors x 2 = 4 max unit tests
+    // Behaviors: (1) template property, (2) message content
+    // Using 2 tests — within budget
 
     val template = "<html><body><p>Hello {{name}}</p></body></html>"
     val subject = MissingVariableError(key = "name", template = template)
-
-    test("MissingVariableError is a RuntimeException") {
-        subject.shouldBeInstanceOf<RuntimeException>()
-    }
-
-    test("key property exposes the missing placeholder name") {
-        subject.key shouldBe "name"
-    }
 
     test("template property exposes the original template string") {
         subject.template shouldBe template

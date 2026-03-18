@@ -6,6 +6,7 @@ import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import io.kotest.matchers.types.shouldBeInstanceOf
 
 @Tags("acceptance")
@@ -54,42 +55,57 @@ class HtmlToPdfSpec : BehaviorSpec({
     given("HTML template with a {{name}} placeholder") {
 
         `when`("data map contains the key") {
-            val result = htmlToPdf(
-                "<html><body><p>Hello {{name}}</p></body></html>",
-                mapOf("name" to "Maria Santos")
-            )
+            val template = "<html><body><p>Hello {{name}}</p></body></html>"
+            val data = mapOf("name" to "Maria Santos")
 
-            then("placeholder is replaced in the rendered output") {
-                // Confirmed indirectly: no MissingVariableError and valid PDF returned
-                result shouldNotBe null
+            then("the resolved template contains the substituted value") {
+                val resolvedHtml = TemplateEngine.resolve(template, data)
+                resolvedHtml shouldContain "Maria Santos"
+                resolvedHtml shouldNotContain "{{name}}"
+            }
+
+            then("htmlToPdf returns an InputStream starting with PDF magic bytes") {
+                val result = htmlToPdf(template, data)
                 result.readNBytes(4) shouldBe "%PDF".toByteArray()
             }
         }
 
         `when`("data map contains multiple keys for multiple placeholders") {
-            val result = htmlToPdf(
-                "<html><body><p>Invoice for {{clientName}}</p><p>Amount: {{amount}}</p><p>Due: {{dueDate}}</p></body></html>",
-                mapOf(
-                    "clientName" to "Acme Corp",
-                    "amount" to "\$1,500.00",
-                    "dueDate" to "2026-04-01"
-                )
+            val template = "<html><body><p>Invoice for {{clientName}}</p><p>Amount: {{amount}}</p><p>Due: {{dueDate}}</p></body></html>"
+            val data = mapOf(
+                "clientName" to "Acme Corp",
+                "amount" to "\$1,500.00",
+                "dueDate" to "2026-04-01"
             )
 
-            then("all placeholders are replaced and a valid PDF is returned") {
-                result shouldNotBe null
+            then("the resolved template contains all substituted values") {
+                val resolvedHtml = TemplateEngine.resolve(template, data)
+                resolvedHtml shouldContain "Acme Corp"
+                resolvedHtml shouldContain "\$1,500.00"
+                resolvedHtml shouldContain "2026-04-01"
+                resolvedHtml shouldNotContain "{{clientName}}"
+                resolvedHtml shouldNotContain "{{amount}}"
+                resolvedHtml shouldNotContain "{{dueDate}}"
+            }
+
+            then("htmlToPdf returns an InputStream starting with PDF magic bytes") {
+                val result = htmlToPdf(template, data)
                 result.readNBytes(4) shouldBe "%PDF".toByteArray()
             }
         }
 
         `when`("the same placeholder appears multiple times in the template") {
-            val result = htmlToPdf(
-                "<html><body><h1>{{name}}</h1><p>Dear {{name}},</p><footer>From {{name}}</footer></body></html>",
-                mapOf("name" to "Carlos")
-            )
+            val template = "<html><body><h1>{{name}}</h1><p>Dear {{name}},</p><footer>From {{name}}</footer></body></html>"
+            val data = mapOf("name" to "Carlos")
 
-            then("all occurrences are replaced and a valid PDF is returned") {
-                result shouldNotBe null
+            then("the resolved template replaces all occurrences of the placeholder") {
+                val resolvedHtml = TemplateEngine.resolve(template, data)
+                resolvedHtml shouldNotContain "{{name}}"
+                resolvedHtml.split("Carlos").size shouldBe 4 // 3 replacements → 4 parts when split
+            }
+
+            then("htmlToPdf returns an InputStream starting with PDF magic bytes") {
+                val result = htmlToPdf(template, data)
                 result.readNBytes(4) shouldBe "%PDF".toByteArray()
             }
         }
