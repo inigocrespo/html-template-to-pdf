@@ -16,8 +16,9 @@ object App {
         val dataMap = resolveDataMap(cliArgs.dataPath) ?: return 1
 
         try {
-            val pdfStream = htmlToPdf(html = htmlContent, data = dataMap)
-            PdfWriter.write(pdfStream, cliArgs.outputPath)
+            htmlToPdf(html = htmlContent, data = dataMap).use { pdfStream ->
+                PdfWriter.write(pdfStream, cliArgs.outputPath)
+            }
         } catch (e: MissingVariableError) {
             System.err.println("Error: template variable '${e.key}' not found in data file")
             return 1

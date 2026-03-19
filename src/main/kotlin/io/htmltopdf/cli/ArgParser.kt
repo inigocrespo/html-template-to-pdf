@@ -22,7 +22,7 @@ object ArgParser {
                         flagValues[args[i]] = args[i + 1]
                         i += 2
                     } else {
-                        i++
+                        return ParseResult.Failure("Error: ${args[i]} requires a value")
                     }
                 }
                 else -> i++
