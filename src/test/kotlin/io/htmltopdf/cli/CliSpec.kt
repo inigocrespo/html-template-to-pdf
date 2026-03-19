@@ -71,7 +71,7 @@ class CliSpec : BehaviorSpec({
     // STORY-CLI-02: Convert HTML template with JSON data to PDF
     // ---------------------------------------------------------------------------
 
-    xgiven("a valid HTML template file and a matching JSON data file") {
+    given("a valid HTML template file and a matching JSON data file") {
         val htmlFile = Files.createTempFile("cli-spec-template", ".html").toFile().also {
             it.writeText("<html><body><p>Hello {{name}}, your total is {{amount}}.</p></body></html>")
             it.deleteOnExit()
@@ -222,7 +222,7 @@ class CliSpec : BehaviorSpec({
     // STORY-CLI-05: Template variable missing from data file
     // ---------------------------------------------------------------------------
 
-    xgiven("an HTML template with {{amount}} and a data file missing the 'amount' key") {
+    given("an HTML template with {{amount}} and a data file missing the 'amount' key") {
         val htmlFile = Files.createTempFile("cli-spec-template", ".html").toFile().also {
             it.writeText("<html><body><p>Total: {{amount}}</p></body></html>")
             it.deleteOnExit()

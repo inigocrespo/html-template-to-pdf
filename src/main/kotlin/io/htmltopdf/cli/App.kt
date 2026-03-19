@@ -1,5 +1,6 @@
 package io.htmltopdf.cli
 
+import io.htmltopdf.MissingVariableError
 import io.htmltopdf.htmlToPdf
 
 object App {
@@ -16,18 +17,26 @@ object App {
             System.err.println("Error: input file not found: ${readResult.path}")
             return 1
         }
-        val content = (readResult as FileReader.ReadResult.Success).content
+        val htmlContent = (readResult as FileReader.ReadResult.Success).content
 
-        if (cliArgs.dataPath != null) {
+        val dataMap: Map<String, String> = if (cliArgs.dataPath != null) {
             val dataReadResult = FileReader.read(cliArgs.dataPath)
             if (dataReadResult is FileReader.ReadResult.NotFound) {
                 System.err.println("Error: data file not found: ${dataReadResult.path}")
                 return 1
             }
+            JsonParser.parse((dataReadResult as FileReader.ReadResult.Success).content)
+        } else {
+            emptyMap()
         }
 
-        val pdfStream = htmlToPdf(html = content)
-        PdfWriter.write(pdfStream, cliArgs.outputPath)
+        try {
+            val pdfStream = htmlToPdf(html = htmlContent, data = dataMap)
+            PdfWriter.write(pdfStream, cliArgs.outputPath)
+        } catch (e: MissingVariableError) {
+            System.err.println("Error: template variable '${e.key}' not found in data file")
+            return 1
+        }
         return 0
     }
 }
