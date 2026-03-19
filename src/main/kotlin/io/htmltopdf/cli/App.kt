@@ -12,23 +12,8 @@ object App {
         }
         val cliArgs = (parseResult as ParseResult.Success).args
 
-        val readResult = FileReader.read(cliArgs.inputPath)
-        if (readResult is FileReader.ReadResult.NotFound) {
-            System.err.println("Error: input file not found: ${readResult.path}")
-            return 1
-        }
-        val htmlContent = (readResult as FileReader.ReadResult.Success).content
-
-        val dataMap: Map<String, String> = if (cliArgs.dataPath != null) {
-            val dataReadResult = FileReader.read(cliArgs.dataPath)
-            if (dataReadResult is FileReader.ReadResult.NotFound) {
-                System.err.println("Error: data file not found: ${dataReadResult.path}")
-                return 1
-            }
-            JsonParser.parse((dataReadResult as FileReader.ReadResult.Success).content)
-        } else {
-            emptyMap()
-        }
+        val htmlContent = readFileContent(cliArgs.inputPath, "input") ?: return 1
+        val dataMap = resolveDataMap(cliArgs.dataPath) ?: return 1
 
         try {
             val pdfStream = htmlToPdf(html = htmlContent, data = dataMap)
@@ -38,5 +23,20 @@ object App {
             return 1
         }
         return 0
+    }
+
+    private fun readFileContent(path: String, label: String): String? {
+        val result = FileReader.read(path)
+        if (result is FileReader.ReadResult.NotFound) {
+            System.err.println("Error: $label file not found: ${result.path}")
+            return null
+        }
+        return (result as FileReader.ReadResult.Success).content
+    }
+
+    private fun resolveDataMap(dataPath: String?): Map<String, String>? {
+        if (dataPath == null) return emptyMap()
+        val content = readFileContent(dataPath, "data") ?: return null
+        return JsonParser.parse(content)
     }
 }

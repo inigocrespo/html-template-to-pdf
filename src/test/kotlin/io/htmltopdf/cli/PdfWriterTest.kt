@@ -3,6 +3,8 @@ package io.htmltopdf.cli
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import java.io.ByteArrayInputStream
+import java.io.File
+import java.io.InputStream
 import java.nio.file.Files
 
 // Test Budget: 3 behaviors x 2 = 6 max unit tests
@@ -20,7 +22,7 @@ class PdfWriterTest : FunSpec({
 
         PdfWriter.write(inputStream, outputPath)
 
-        java.io.File(outputPath).exists() shouldBe true
+        File(outputPath).exists() shouldBe true
         tempDir.toFile().deleteRecursively()
     }
 
@@ -32,7 +34,7 @@ class PdfWriterTest : FunSpec({
 
         PdfWriter.write(inputStream, outputPath)
 
-        val writtenBytes = java.io.File(outputPath).readBytes()
+        val writtenBytes = File(outputPath).readBytes()
         writtenBytes.toList() shouldBe sourceBytes.toList()
         tempDir.toFile().deleteRecursively()
     }
@@ -49,7 +51,7 @@ class PdfWriterTest : FunSpec({
     }
 })
 
-private class TrackingInputStream(private val delegate: java.io.InputStream) : java.io.InputStream() {
+private class TrackingInputStream(private val delegate: InputStream) : InputStream() {
     var wasClosed = false
 
     override fun read(): Int = delegate.read()

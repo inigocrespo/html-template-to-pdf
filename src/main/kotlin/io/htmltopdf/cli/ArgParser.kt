@@ -13,13 +13,13 @@ sealed class ParseResult {
 
 object ArgParser {
     fun parse(args: Array<String>): ParseResult {
-        val map = mutableMapOf<String, String>()
+        val flagValues = mutableMapOf<String, String>()
         var i = 0
         while (i < args.size) {
             when (args[i]) {
                 "--input", "--data", "--output" -> {
                     if (i + 1 < args.size) {
-                        map[args[i]] = args[i + 1]
+                        flagValues[args[i]] = args[i + 1]
                         i += 2
                     } else {
                         i++
@@ -29,9 +29,9 @@ object ArgParser {
             }
         }
 
-        val input = map["--input"] ?: return ParseResult.Failure("Error: --input is required")
-        val output = map["--output"] ?: return ParseResult.Failure("Error: --output is required")
-        val data = map["--data"]
+        val input = flagValues["--input"] ?: return ParseResult.Failure("Error: --input is required")
+        val output = flagValues["--output"] ?: return ParseResult.Failure("Error: --output is required")
+        val data = flagValues["--data"]
 
         return ParseResult.Success(CliArgs(inputPath = input, dataPath = data, outputPath = output))
     }
