@@ -18,6 +18,14 @@ object App {
         }
         val content = (readResult as FileReader.ReadResult.Success).content
 
+        if (cliArgs.dataPath != null) {
+            val dataReadResult = FileReader.read(cliArgs.dataPath)
+            if (dataReadResult is FileReader.ReadResult.NotFound) {
+                System.err.println("Error: data file not found: ${dataReadResult.path}")
+                return 1
+            }
+        }
+
         val pdfStream = htmlToPdf(html = content)
         PdfWriter.write(pdfStream, cliArgs.outputPath)
         return 0
