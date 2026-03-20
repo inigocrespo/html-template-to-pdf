@@ -1,0 +1,149 @@
+roadmap:
+  project_id: htmltopdf-cli
+  created_at: '2026-03-18T15:59:28Z'
+  total_steps: 7
+  phases: 3
+phases:
+- id: '01'
+  name: Build setup
+  steps:
+  - id: 01-01
+    name: Add shadow plugin, Gson dependency, and Main-Class manifest
+    description: >
+      Configure build.gradle.kts: apply com.github.johnrengelman.shadow:8.1.1,
+      add com.google.code.gson:gson:2.11.0 runtime dependency, set JAR manifest
+      Main-Class to io.htmltopdf.cli.MainKt.
+    estimate_minutes: 15
+    depends_on: []
+    files:
+    - build.gradle.kts
+    criteria:
+    - CliInfrastructureSpec "build.gradle.kts declares the shadow plugin" passes
+    - ./gradlew shadowJar produces a fat-JAR and its MANIFEST.MF contains Main-Class io.htmltopdf.cli.MainKt
+    - Gson classes are resolvable on the compile classpath
+
+- id: '02'
+  name: CLI core
+  steps:
+  - id: 02-01
+    name: Implement ArgParser
+    description: >
+      Parse --input, --data (optional), and --output from args array.
+      Return a CliArgs data class on success or a descriptive error string
+      identifying the first missing required flag.
+    estimate_minutes: 20
+    depends_on:
+    - 01-01
+    files:
+    - src/main/kotlin/io/htmltopdf/cli/ArgParser.kt
+    criteria:
+    - Parsing --input and --output returns a CliArgs with both paths set
+    - Parsing with --input absent returns an error identifying "--input is required"
+    - Parsing with --output absent returns an error identifying "--output is required"
+    - --data is absent from a valid CliArgs when the flag is not supplied
+
+  - id: 02-02
+    name: Implement FileReader and JsonParser
+    description: >
+      FileReader reads a file path to a UTF-8 string or signals file-not-found.
+      JsonParser converts a flat JSON string to Map<String,String> via Gson.
+    estimate_minutes: 20
+    depends_on:
+    - 02-01
+    files:
+    - src/main/kotlin/io/htmltopdf/cli/FileReader.kt
+    - src/main/kotlin/io/htmltopdf/cli/JsonParser.kt
+    criteria:
+    - FileReader returns the full UTF-8 content of an existing file
+    - FileReader signals an error when the path does not exist on disk
+    - JsonParser returns a map with all top-level string key-value pairs
+    - JsonParser ignores nested objects and non-string values without throwing
+
+  - id: 02-03
+    name: Implement PdfWriter
+    description: >
+      PdfWriter writes all bytes from an InputStream to a file at the given
+      output path, creating or overwriting the file.
+    estimate_minutes: 15
+    depends_on:
+    - 02-01
+    files:
+    - src/main/kotlin/io/htmltopdf/cli/PdfWriter.kt
+    criteria:
+    - Written file exists on disk after PdfWriter completes
+    - Written file byte content is identical to the source InputStream bytes
+    - PdfWriter does not close the provided InputStream
+
+  - id: 02-04
+    name: Implement App.run() and Main.kt — walking skeleton passes
+    description: >
+      Wire ArgParser, FileReader, and PdfWriter inside App.run(). Invoke the
+      existing library to convert HTML to PDF and write output. Main.kt calls
+      exitProcess(App.run(args)). STORY-CLI-01 must pass (no --data path).
+    estimate_minutes: 30
+    depends_on:
+    - 02-01
+    - 02-02
+    - 02-03
+    files:
+    - src/main/kotlin/io/htmltopdf/cli/App.kt
+    - src/main/kotlin/io/htmltopdf/cli/Main.kt
+    criteria:
+    - App is implemented as a Kotlin object singleton accessible via io.htmltopdf.cli.App
+    - CliInfrastructureSpec "App object is accessible from the public API" passes
+    - CliInfrastructureSpec "App.run returns Int" passes
+    - "STORY-CLI-01: App.run with --input and --output returns exit code 0"
+    - "STORY-CLI-01: output file exists on disk and starts with PDF magic bytes %PDF"
+    - "STORY-CLI-01: stderr is empty on successful conversion"
+
+- id: '03'
+  name: Error handling
+  steps:
+  - id: 03-01
+    name: Enable and pass STORY-CLI-03 and STORY-CLI-04 (missing flags and missing files)
+    description: >
+      Add error paths in App.run() for missing --input, missing --output, input
+      file not found, and data file not found. Print "Error: <message>" to
+      stderr and return exit code 1 for each case.
+    estimate_minutes: 25
+    depends_on:
+    - 02-04
+    files:
+    - src/main/kotlin/io/htmltopdf/cli/App.kt
+    criteria:
+    - "STORY-CLI-03: missing --input yields exit code 1 and stderr contains Error --input is required"
+    - "STORY-CLI-03: missing --output yields exit code 1 and stderr contains Error --output is required"
+    - "STORY-CLI-04: non-existent --input path yields exit code 1 and stderr contains Error input file not found"
+    - "STORY-CLI-04: non-existent --data path yields exit code 1 and stderr contains Error data file not found"
+
+  - id: 03-02
+    name: Enable and pass STORY-CLI-02 and STORY-CLI-05 (JSON data injection and missing variable error)
+    description: >
+      Wire JsonParser into App.run() for the --data path. Inject parsed key-value
+      pairs into HTML before conversion. Map MissingVariableError from the library
+      to exit code 1 with stderr identifying the missing variable. Extra data keys
+      are silently ignored.
+    estimate_minutes: 30
+    depends_on:
+    - 03-01
+    files:
+    - src/main/kotlin/io/htmltopdf/cli/App.kt
+    criteria:
+    - "STORY-CLI-02: HTML template with placeholders renders substituted values into the output PDF"
+    - "STORY-CLI-02: exit code is 0 and stderr is empty when all template variables are satisfied"
+    - "STORY-CLI-05: missing template variable yields exit code 1 and stderr contains the missing key name"
+    - Extra keys in the data file do not cause an error and exit code is 0
+
+implementation_scope:
+  source_directories:
+  - src/main/kotlin/io/htmltopdf/cli/
+  test_directories:
+  - src/test/kotlin/io/htmltopdf/cli/
+  excluded_patterns:
+  - .gradle/
+  - build/
+  - "*.class"
+validation:
+  status: pending
+  reviewer: solution-architect-reviewer
+  approved_at: ~

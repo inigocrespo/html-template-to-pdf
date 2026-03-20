@@ -1,0 +1,287 @@
+journey:
+  id: cli
+  title: HTML Template to PDF -- CLI
+  actor: Developer (command-line user)
+  goal: Convert an HTML template file with optional JSON data into a PDF file on disk using a single terminal command
+  tool: htmltopdf CLI
+  library: html-template-to-pdf (Kotlin)
+  renderer: OpenPdfHtmlRenderer
+  date: 2026-03-18
+
+steps:
+  - id: S01
+    name: Prepare files
+    actor: developer
+    action: >
+      Ensures template.html and (optionally) data.json exist in the working
+      directory before invoking the CLI.
+    system_response: No system action. Files are pre-existing artifacts on disk.
+    artifact_out:
+      - name: template.html
+        type: file
+        format: HTML (may contain {{key}} placeholders)
+      - name: data.json
+        type: file
+        format: JSON flat key-value object (optional)
+    emotion: curious
+    feature_tag: cli-core
+
+  - id: S02
+    name: Run command
+    actor: developer
+    action: >
+      Runs: htmltopdf --input template.html --data data.json --output invoice.pdf
+      Flags: --input (required), --data (optional), --output (required)
+    system_response: >
+      CLI process starts. Argument parser reads argv.
+      Validates that --input and --output are present.
+      Records htmlFilePath, jsonFilePath, outputPdfPath from flag values.
+    artifact_in:
+      - name: argv
+        type: string[]
+        source: shell
+    artifact_out:
+      - name: htmlFilePath
+        type: string
+        value_example: template.html
+      - name: jsonFilePath
+        type: string
+        value_example: data.json
+        optional: true
+      - name: outputPdfPath
+        type: string
+        value_example: invoice.pdf
+    emotion: focused
+    feature_tag: cli-core
+
+  - id: S03
+    name: Read and validate inputs
+    actor: cli
+    action: >
+      Reads the file at htmlFilePath into a string (htmlString).
+      If jsonFilePath is provided, reads and parses it into a flat string-to-string map (dataMap).
+      If jsonFilePath is omitted, dataMap is an empty map.
+    system_response: >
+      File system returns file contents.
+      JSON parser produces a Map<String, String>.
+      Both values held in memory for library call.
+    artifact_in:
+      - name: htmlFilePath
+        type: string
+      - name: jsonFilePath
+        type: string
+        optional: true
+    artifact_out:
+      - name: htmlString
+        type: string
+        source: htmlFilePath read
+      - name: dataMap
+        type: Map<String, String>
+        source: jsonFilePath parsed (or empty map)
+    emotion: expectant
+    feature_tag: cli-core
+
+  - id: S04
+    name: Call library
+    actor: cli
+    action: >
+      Invokes htmlToPdf(html = htmlString, data = dataMap) from the
+      html-template-to-pdf Kotlin library.
+    system_response: >
+      Library validates htmlString (non-blank).
+      Library checks all {{key}} tokens in htmlString have matching keys in dataMap.
+      Library renders PDF via OpenPdfHtmlRenderer.
+      Returns InputStream containing PDF bytes.
+    artifact_in:
+      - name: htmlString
+        type: string
+        source: S03
+      - name: dataMap
+        type: Map<String, String>
+        source: S03
+    artifact_out:
+      - name: pdfStream
+        type: InputStream
+        format: PDF bytes (binary)
+    emotion: confident
+    feature_tag: cli-core
+
+  - id: S05
+    name: Write PDF to disk
+    actor: cli
+    action: Writes pdfStream bytes to the file at outputPdfPath.
+    system_response: >
+      File system creates or overwrites the file at outputPdfPath.
+      All bytes from pdfStream are written.
+      Stream is closed cleanly on completion.
+    artifact_in:
+      - name: pdfStream
+        type: InputStream
+        source: S04
+      - name: outputPdfPath
+        type: string
+        source: S02
+    artifact_out:
+      - name: invoice.pdf
+        type: file
+        format: PDF
+        path: outputPdfPath
+    emotion: accomplished
+    feature_tag: cli-core
+
+  - id: S06
+    name: Silent success
+    actor: cli
+    action: Exits with code 0. No output to stdout.
+    system_response: >
+      Process exits 0.
+      Shell prompt returns.
+      No stdout lines emitted.
+    artifact_in:
+      - name: invoice.pdf
+        type: file
+        source: S05
+    artifact_out: []
+    emotion: accomplished
+    feature_tag: cli-core
+
+  - id: SE1
+    name: Missing required flag
+    actor: cli
+    action: Developer omits --input or --output flag.
+    system_response: >
+      Argument parser detects missing required flag.
+      Prints descriptive error to stderr naming the missing flag.
+      Exits with code 1.
+      No file I/O attempted.
+    artifact_in:
+      - name: argv
+        type: string[]
+        note: missing --input or --output
+    artifact_out:
+      - name: stderrMessage
+        type: string
+        value_example: "Error: --input is required"
+      - name: exitCode
+        type: int
+        value: 1
+    emotion: informed
+    feature_tag: cli-errors
+
+  - id: SE2
+    name: Input file not found
+    actor: cli
+    action: htmlFilePath does not resolve to an existing file on disk.
+    system_response: >
+      File system returns file-not-found.
+      CLI prints error to stderr naming the missing file path.
+      Exits with code 1.
+    artifact_in:
+      - name: htmlFilePath
+        type: string
+        note: path does not exist
+    artifact_out:
+      - name: stderrMessage
+        type: string
+        value_example: "Error: input file not found: template.html"
+      - name: exitCode
+        type: int
+        value: 1
+    emotion: informed
+    feature_tag: cli-errors
+
+  - id: SE3
+    name: Data file not found
+    actor: cli
+    action: jsonFilePath is provided but does not resolve to an existing file on disk.
+    system_response: >
+      File system returns file-not-found.
+      CLI prints error to stderr naming the missing data file path.
+      Exits with code 1.
+    artifact_in:
+      - name: jsonFilePath
+        type: string
+        note: path does not exist
+    artifact_out:
+      - name: stderrMessage
+        type: string
+        value_example: "Error: data file not found: data.json"
+      - name: exitCode
+        type: int
+        value: 1
+    emotion: informed
+    feature_tag: cli-errors
+
+  - id: SE4
+    name: Template variable missing from data
+    actor: cli
+    action: >
+      htmlString contains a {{key}} placeholder whose key is absent from dataMap.
+      Library throws MissingVariableError(key, template).
+    system_response: >
+      CLI catches MissingVariableError.
+      Prints error to stderr naming the missing key.
+      Exits with code 1.
+      No PDF file written.
+    artifact_in:
+      - name: htmlString
+        type: string
+        note: contains {{key}} with no matching entry in dataMap
+      - name: dataMap
+        type: Map<String, String>
+        note: missing one or more keys referenced by template
+    artifact_out:
+      - name: stderrMessage
+        type: string
+        value_example: "Error: template variable 'invoiceNumber' not found in data file"
+      - name: exitCode
+        type: int
+        value: 1
+    emotion: informed
+    feature_tag: cli-errors
+
+  - id: SE5
+    name: Extra key in data (silently ignored)
+    actor: cli
+    action: data.json contains a key that is not referenced by any {{key}} in the template.
+    system_response: >
+      Library processes only the keys that appear in the template.
+      Extra keys in dataMap are ignored without warning.
+      PDF written successfully. Exits code 0.
+    artifact_in:
+      - name: dataMap
+        type: Map<String, String>
+        note: contains keys not present in template
+    artifact_out:
+      - name: invoice.pdf
+        type: file
+        format: PDF
+    emotion: accomplished
+    feature_tag: cli-core
+
+integration_checkpoints:
+  - from: S02
+    to: S03
+    contract: >
+      htmlFilePath and outputPdfPath MUST be non-null strings after flag parsing.
+      If either is absent, SE1 is triggered before any file I/O.
+  - from: S03
+    to: S04
+    contract: >
+      htmlString MUST be the full text content of the file at htmlFilePath.
+      dataMap MUST be a Map<String, String>; empty map when --data is omitted.
+  - from: S04
+    to: S05
+    contract: >
+      pdfStream MUST be a valid InputStream containing PDF bytes.
+      CLI MUST NOT call S05 if S04 throws any exception.
+  - from: S04
+    to: SE4
+    contract: >
+      When MissingVariableError is thrown, the error's key field MUST appear
+      verbatim in the stderr message. No PDF is written.
+  - from: S05
+    to: S06
+    contract: >
+      Exit code 0 MUST NOT be emitted until pdfStream is fully written and closed.
+      Partial writes MUST result in exit code 1.
